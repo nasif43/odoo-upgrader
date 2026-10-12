@@ -35,17 +35,17 @@ Follow these execution steps strictly:
    - Identify module dependencies (`depends`), model definitions, views, and frontend assets.
 2. If the user specifies a target version (e.g., 19 or 20), adopt it. Otherwise, default to target `19`.
 
-### Step 2: Run the Upgrade Engine
-Execute the CLI tool to perform backup, transforms, and AST checks:
+### Step 2: Run the Upgrade & Live Installation Engine
+Execute the upgrade CLI pipeline:
 ```bash
 odoo-upgrader <path_to_addons> --target <target_version>
 ```
-*(Or `python3 -m odoo_upgrader.cli <path_to_addons> --target <target_version>`)*
+*(Or with explicit DB: `odoo-upgrader <path_to_addons> --target <target_version> --db <db_name>`)*
 
-If an active Odoo instance or database is available on the machine:
-```bash
-odoo-upgrader <path_to_addons> --target <target_version> --test-install --db <db_name>
-```
+**Dynamic App Installation Verification:**
+The tool automatically detects the system's `odoo-bin` and PostgreSQL environment, and will attempt to install each upgraded custom module with:
+`odoo-bin -d <db> -i <module> --stop-after-init --no-http`
+to verify that the server does not crash and no view/model validation errors occur.
 
 ### Step 3: Handle Complex Failures & Edge Cases
 If the static checker reports blockers or the live install test fails:

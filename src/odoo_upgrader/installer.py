@@ -19,6 +19,7 @@ class InstallTestResult(BaseModel):
     status: str  # "PASS" | "FAIL" | "SKIPPED"
     exit_code: int = 0
     duration_seconds: float = 0.0
+    db_name: Optional[str] = None
     error_summary: Optional[str] = None
     log_output: str = ""
 
@@ -42,6 +43,13 @@ class OdooAppInstaller:
         "/usr/local/bin/odoo-bin",
     ]
 
+    COMMON_CONFIG_PATHS = [
+        "/home/muhts/dev/Codes/metamorphosis/odoo-app/odoo.conf",
+        "./odoo.conf",
+        "../odoo.conf",
+        "../../odoo.conf",
+    ]
+
     def __init__(
         self,
         odoo_bin_path: Optional[str] = None,
@@ -50,8 +58,8 @@ class OdooAppInstaller:
         addons_paths: Optional[List[str]] = None,
     ):
         self.odoo_bin_path = self._resolve_odoo_bin(odoo_bin_path)
-        self.db_name = db_name
-        self.config_path = config_path
+        self.config_path = self._resolve_config(config_path)
+        self.db_name = self._resolve_db(db_name)
         self.addons_paths = addons_paths or []
 
     def _resolve_odoo_bin(self, explicit_path: Optional[str]) -> Optional[str]:
@@ -66,6 +74,55 @@ class OdooAppInstaller:
             p = Path(candidate).expanduser()
             if p.is_file() and os.access(p, os.X_OK):
                 return str(p)
+
+        return None
+
+    def _resolve_config(self, explicit_path: Optional[str]) -> Optional[str]:
+        if explicit_path and Path(explicit_path).exists():
+            return str(Path(explicit_path).resolve())
+
+        for candidate in self.COMMON_CONFIG_PATHS:
+            p = Path(candidate).expanduser()
+            if p.is_file():
+                return str(p.resolve())
+
+        default_rc = Path.home() / ".odoorc"
+        if default_rc.is_file():
+            return str(default_rc)
+
+        return None
+
+    def _resolve_db(self, explicit_db: Optional[str]) -> Optional[str]:
+        if explicit_db:
+            return explicit_db
+
+        # Check config file if available
+        if self.config_path and Path(self.config_path).exists():
+            try:
+                content = Path(self.config_path).read_text()
+                match = re.search(r"^\s*db_name\s*=\s*([^\s,]+)", content, re.MULTILINE)
+                if match and match.group(1).strip() and match.group(1).strip().lower() != "false":
+                    return match.group(1).strip()
+            except Exception:
+                pass
+
+        # Check PostgreSQL for common local Odoo databases
+        try:
+            res = subprocess.run(
+                ["psql", "-h", "127.0.0.1", "-U", "odoo", "-t", "-c",
+                 "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('postgres') LIMIT 1;"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=dict(os.environ, PGPASSWORD="odoo"),
+                timeout=3,
+            )
+            if res.returncode == 0:
+                first_db = res.stdout.strip()
+                if first_db:
+                    return first_db.splitlines()[0].strip()
+        except Exception:
+            pass
 
         return None
 
@@ -93,7 +150,7 @@ class OdooAppInstaller:
                 module_name=module_name,
                 status="SKIPPED",
                 exit_code=0,
-                error_summary="No database specified for dynamic install test (use --db <name>).",
+                error_summary="No database specified or auto-detected for test install (pass --db <name>).",
             )
 
         # Collect addons paths
@@ -110,10 +167,10 @@ class OdooAppInstaller:
             "--no-http",
             "--log-level=warn",
         ]
-        if effective_addons:
-            cmd.extend(["--addons-path", ",".join(effective_addons)])
         if self.config_path and Path(self.config_path).exists():
             cmd.extend(["-c", self.config_path])
+        if effective_addons:
+            cmd.extend(["--addons-path", ",".join(effective_addons)])
 
         start_time = time.time()
         try:
@@ -133,6 +190,7 @@ class OdooAppInstaller:
                     status="PASS",
                     exit_code=0,
                     duration_seconds=duration,
+                    db_name=target_db,
                     log_output=log,
                 )
             else:
@@ -142,6 +200,7 @@ class OdooAppInstaller:
                     status="FAIL",
                     exit_code=res.returncode or -1,
                     duration_seconds=duration,
+                    db_name=target_db,
                     error_summary=error_sig,
                     log_output=log,
                 )
@@ -152,6 +211,7 @@ class OdooAppInstaller:
                 status="FAIL",
                 exit_code=-2,
                 duration_seconds=timeout,
+                db_name=target_db,
                 error_summary=f"Installation timed out after {timeout}s.",
             )
         except Exception as e:
@@ -160,6 +220,7 @@ class OdooAppInstaller:
                 status="FAIL",
                 exit_code=-3,
                 duration_seconds=0.0,
+                db_name=target_db,
                 error_summary=f"Failed to execute odoo-bin: {str(e)}",
             )
 
@@ -170,20 +231,16 @@ class OdooAppInstaller:
         return False
 
     def _extract_error_summary(self, log: str, returncode: int) -> str:
-        # Check for python traceback first
         tb_match = self.TRACEBACK_PATTERN.findall(log)
         if tb_match:
             last_tb = tb_match[-1].strip()
-            # Return last 3 lines of traceback for concise summary
             lines = [l.strip() for l in last_tb.splitlines() if l.strip()]
             return " | ".join(lines[-2:]) if len(lines) >= 2 else lines[-1]
 
-        # Check for Odoo structured error lines
         errors = self.ERROR_PATTERN.findall(log)
         if errors:
             return errors[-1].strip()
 
-        # Fallback to last non-empty lines of log
         lines = [l.strip() for l in log.splitlines() if l.strip()]
         if lines:
             return lines[-1]

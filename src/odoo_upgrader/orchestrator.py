@@ -21,7 +21,8 @@ class UpgradeOrchestrator:
         target_path: str | Path,
         target_version: int = 19,
         backup: bool = True,
-        test_install: bool = False,
+        test_install: bool = True,
+        skip_install: bool = False,
         db_name: Optional[str] = None,
         odoo_bin_path: Optional[str] = None,
         config_path: Optional[str] = None,
@@ -31,7 +32,7 @@ class UpgradeOrchestrator:
         self.target_path = Path(target_path).resolve()
         self.target_version = target_version
         self.backup = backup
-        self.test_install = test_install
+        self.skip_install = skip_install
         self.db_name = db_name
         self.odoo_bin_path = odoo_bin_path
         self.config_path = config_path
@@ -45,6 +46,7 @@ class UpgradeOrchestrator:
             config_path=self.config_path,
             addons_paths=self.addons_paths,
         )
+        self.test_install = test_install and not skip_install and self.installer.is_available()
 
     def run(self) -> List[ModuleUpgradeResult]:
         """Execute detection, transforms, static checks, installation tests, and reporting."""
@@ -124,8 +126,9 @@ class UpgradeOrchestrator:
 
         # 5. Dynamic App Install Test
         install_res: Optional[InstallTestResult] = None
-        if self.test_install or self.db_name:
-            print(f"  [5/5] Testing dynamic app installation with odoo-bin...")
+        if self.test_install:
+            db_label = self.installer.db_name or "auto-detected"
+            print(f"  [5/5] Testing dynamic app installation with odoo-bin on database '{db_label}'...")
             install_res = self.installer.test_install(
                 module_name=mod.name,
                 module_path=mod.path,
@@ -135,7 +138,7 @@ class UpgradeOrchestrator:
             if install_res.status == "FAIL":
                 print(f"        ❌ Error: {install_res.error_summary}")
         else:
-            print(f"  [5/5] Skipping dynamic app install (pass --test-install --db <db> to enable)")
+            print(f"  [5/5] Skipping dynamic app install (--skip-install active or odoo-bin not found)")
 
         return ModuleUpgradeResult(
             module_name=mod.name,

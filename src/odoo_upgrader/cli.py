@@ -17,10 +17,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("path", nargs="?", default=".", help="Path to Odoo module or addons repository (default: current directory)")
     parser.add_argument("--target", type=int, default=19, choices=[14, 15, 16, 17, 18, 19, 20], help="Target Odoo version (default: 19)")
-    parser.add_argument("--test-install", action="store_true", help="Execute live installation test with odoo-bin")
-    parser.add_argument("--db", type=str, default=None, help="PostgreSQL database name for test installation")
-    parser.add_argument("--odoo-bin", type=str, default=None, help="Explicit path to odoo-bin executable")
-    parser.add_argument("--config", "-c", type=str, default=None, help="Path to odoo.conf configuration file")
+    parser.add_argument("--test-install", action="store_true", default=True, help="Execute live installation test with odoo-bin (default: enabled if odoo-bin is found)")
+    parser.add_argument("--skip-install", action="store_true", help="Skip dynamic installation test (static analysis & transforms only)")
+    parser.add_argument("--db", type=str, default=None, help="PostgreSQL database name for test installation (default: auto-detected)")
+    parser.add_argument("--odoo-bin", type=str, default=None, help="Explicit path to odoo-bin executable (default: auto-detected)")
+    parser.add_argument("--config", "-c", type=str, default=None, help="Path to odoo.conf configuration file (default: auto-detected)")
     parser.add_argument("--addons-path", type=str, default=None, help="Comma-separated addons paths for odoo-bin")
     parser.add_argument("--no-backup", action="store_true", help="Skip creating backup copies before making changes")
     parser.add_argument("--dry-run", action="store_true", help="Scan and detect issues without writing changes")
@@ -52,7 +53,8 @@ def main():
         target_path=target_path,
         target_version=args.target,
         backup=not args.no_backup,
-        test_install=args.test_install,
+        test_install=not args.skip_install,
+        skip_install=args.skip_install,
         db_name=args.db,
         odoo_bin_path=args.odoo_bin,
         config_path=args.config,
