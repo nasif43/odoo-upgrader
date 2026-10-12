@@ -1,0 +1,11 @@
+{
+  "eval_id": 2,
+  "eval_name": "odoo-4-core-8gb-tune",
+  "prompt": "I have a single server running Odoo and Postgres with 8GB RAM and 4 cores. What are the best mathematical settings for Odoo workers and memory to ensure high availability?",
+  "assertions": [
+    {"text": "Recommends workers = 9", "passed": false, "evidence": ""},
+    {"text": "Recommends soft memory limit around 1.1GB", "passed": false, "evidence": ""},
+    {"text": "Recommends hard memory limit around 2.2GB", "passed": false, "evidence": ""},
+    {"text": "Suggests Redis or PgBouncer", "passed": false, "evidence": ""}
+  ]
+}

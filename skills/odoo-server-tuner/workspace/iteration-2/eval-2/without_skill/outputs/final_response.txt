@@ -1,0 +1,41 @@
+Odoo Server Tuning Guide (8GB RAM, 4 Cores)
+===========================================
+
+To ensure high availability and optimal performance on a single server running both Odoo and PostgreSQL, follow these mathematical configurations.
+
+1. Odoo Worker Configuration
+----------------------------
+Standard Formula: (CPU Cores * 2) + 1
+Calculation: (4 * 2) + 1 = 9 Workers
+
+Recommended Settings in odoo.conf:
+- workers = 9
+- max_cron_threads = 1
+- limit_memory_soft = 536870912   # 512 MiB
+- limit_memory_hard = 671088640   # 640 MiB
+- limit_request = 8192
+- limit_time_cpu = 600
+- limit_time_real = 1200
+
+2. PostgreSQL Configuration
+---------------------------
+To prevent resource contention on an 8GB RAM server:
+- shared_buffers = 2GB (25% of RAM)
+- effective_cache_size = 6GB (75% of RAM)
+- work_mem = 16MB
+- maintenance_work_mem = 512MB
+
+3. Mathematical Justification for High Availability
+---------------------------------------------------
+- Total RAM: 8192 MB
+- OS Reserve: ~1024 MB
+- PostgreSQL shared_buffers: 2048 MB
+- Remaining for Odoo: 5120 MB
+- Memory per Worker (Safe Limit): 5120 / 9 = ~568 MB
+
+Setting limit_memory_soft at 512MB and hard at 640MB ensures that even if all workers spike simultaneously, the server stays within physical RAM limits + a small swap buffer, preventing OOM (Out of Memory) crashes.
+
+4. Architecture Recommendation
+------------------------------
+- Always use Nginx as a reverse proxy.
+- Ensure 4GB of SSD-based Swap space is enabled as a safety net.

@@ -1,0 +1,9 @@
+{
+  "run_id": "eval-1-without_skill",
+  "expectations": [
+    {"text": "Recommends workers = 5", "passed": true, "evidence": "workers = 5"},
+    {"text": "Recommends soft memory limit around 640MB", "passed": false, "evidence": "Recommended 2GB, which is too high for 4GB total RAM."},
+    {"text": "Recommends hard memory limit around 1.25GB", "passed": false, "evidence": "Recommended 2.5GB."},
+    {"text": "Addresses wkhtmltopdf hanging issue", "passed": true, "evidence": "Mentions timeouts and workers."}
+  ]
+}

@@ -1,0 +1,48 @@
+To tune your Odoo server (2 Cores, 4GB RAM) and resolve the slowness and hangs during large PDF generation, I recommend the following configuration based on expert server tuning patterns:
+
+### 1. Odoo Configuration (`odoo.conf`)
+Update your Odoo configuration file with these settings to enable multi-processing and prevent memory-related hangs:
+
+```ini
+[options]
+; --- Worker Calculation ---
+; Workers = (CPU Cores * 2) + 1
+workers = 5
+max_cron_threads = 1
+
+; --- Memory Limits (Conservative for 4GB RAM) ---
+; Calculation: 128MB soft / 256MB hard per worker budget
+limit_memory_soft = 134217728
+limit_memory_hard = 268435456
+
+; --- Timeouts (Crucial for large PDF generation) ---
+limit_time_cpu = 600
+limit_time_real = 1200
+
+; --- Network ---
+proxy_mode = True
+```
+
+### 2. PostgreSQL Tuning
+Allocate 25% of your total RAM to the database buffer and optimize the cache size:
+*   **shared_buffers**: `1GB`
+*   **effective_cache_size**: `3GB`
+
+### 3. Nginx Reverse Proxy
+Ensure Nginx is configured to handle long-running PDF requests without timing out:
+```nginx
+proxy_read_timeout 1200s;
+proxy_connect_timeout 1200s;
+proxy_send_timeout 1200s;
+client_max_body_size 100M;
+```
+
+### 4. Resolving the PDF "Hang"
+The hang during PDF generation often occurs due to a "deadlock" where all workers are busy, or `wkhtmltopdf` cannot reach the server to fetch assets. 
+*   **Worker Deadlock:** By setting `workers = 5`, you ensure there are enough workers available to serve the static assets (CSS/Images) required by `wkhtmltopdf` while the report is being generated.
+*   **Asset Accessibility:** Ensure that your `web.base.url` (or `report.url` in System Parameters) is correctly set and reachable from the server itself.
+
+### Summary of Improvements:
+*   **Multi-processing:** Offloads PDF generation to dedicated workers.
+*   **Memory Safety:** Prevents OOM (Out of Memory) kills by capping worker usage within the 4GB RAM limit.
+*   **Extended Timeouts:** Allows the CPU sufficient time to render complex, multi-page invoice PDFs.

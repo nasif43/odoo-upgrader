@@ -1,0 +1,30 @@
+### Odoo Server Tuning for 2 Cores / 4GB RAM
+
+Your current issues (slowness and hanging during PDF generation) are likely due to worker exhaustion or insufficient memory limits. For a server with 2 CPU cores and 4GB RAM, the following settings are recommended based on the `odoo-server-tuner` skill guidelines.
+
+#### 1. Worker Configuration
+- **workers = 5**  
+  Calculated as `(CPU_CORES * 2) + 1`. This ensures at least one worker is available to handle asset requests from `wkhtmltopdf` while other workers are busy.
+- **max_cron_threads = 1**  
+  Sufficient for low-spec servers to prevent background tasks from starving the main workers.
+
+#### 2. Memory Limits
+Based on 128MB (soft) and 256MB (hard) per worker:
+- **limit_memory_soft = 671088640** (640MB total)
+- **limit_memory_hard = 1342177280** (1.28GB total)
+
+*Note: If the server still hangs under heavy load, reduce these to 96MB (soft) and 160MB (hard) per worker to leave more headroom for PostgreSQL.*
+
+#### 3. Timeouts (Crucial for large PDF generation)
+- **limit_time_cpu = 600** (10 minutes)
+- **limit_time_real = 1200** (20 minutes)
+
+#### 4. PostgreSQL Optimization
+Update your `postgresql.conf` for 4GB RAM:
+- **shared_buffers = 1GB** (25% of total RAM)
+- **effective_cache_size = 2GB** (50% of total RAM)
+
+#### 5. Additional Recommendations
+- **Nginx:** Ensure `proxy_read_timeout 600s` and `client_max_body_size 100M` are set in your Nginx configuration.
+- **Redis:** Install Redis and use it for session storage to reduce filesystem I/O.
+- **Report URL:** Verify that the `web.base.url` or `report.url` is accessible from the server itself (localhost) to ensure `wkhtmltopdf` can fetch static assets quickly.

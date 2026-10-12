@@ -1,0 +1,9 @@
+{
+  "run_id": "eval-1-with_skill",
+  "expectations": [
+    {"text": "Recommends workers = 5", "passed": true, "evidence": "workers = 5"},
+    {"text": "Recommends soft memory limit around 640MB", "passed": false, "evidence": "Recommended 134217728 (128MB) which is per-worker, but the skill asked for total (workers * 128MB)."},
+    {"text": "Recommends hard memory limit around 1.25GB", "passed": false, "evidence": "Recommended 256MB instead of 1.25GB."},
+    {"text": "Addresses wkhtmltopdf hanging issue", "passed": true, "evidence": "Explains deadlock and asset fetching."}
+  ]
+}

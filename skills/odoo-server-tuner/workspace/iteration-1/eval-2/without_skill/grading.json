@@ -1,0 +1,9 @@
+{
+  "run_id": "eval-2-without_skill",
+  "expectations": [
+    {"text": "Recommends workers = 9", "passed": true, "evidence": "workers = 9"},
+    {"text": "Recommends soft memory limit around 1.1GB", "passed": false, "evidence": "Recommended 640MB per worker (5.7GB total), which is a different methodology."},
+    {"text": "Recommends hard memory limit around 2.2GB", "passed": false, "evidence": "Recommended 768MB per worker."},
+    {"text": "Suggests Redis or PgBouncer", "passed": false, "evidence": "Not mentioned."}
+  ]
+}

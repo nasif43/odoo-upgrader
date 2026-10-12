@@ -1,0 +1,44 @@
+# Odoo Server Tuning for 2 Cores / 4GB RAM
+
+Your Odoo server is likely slow and hanging during large invoice PDF generation because of the default "monolithic" mode (workers = 0) or insufficient memory/timeout limits for the PDF generation process.
+
+Based on your hardware (2 CPUs, 4GB RAM), here is the recommended configuration:
+
+## 1. Worker Calculation (CPU-based)
+- **Formula:** (Number of CPUs * 2) + 1
+- **Recommendation:** `workers = 5` (4 HTTP workers + 1 Cron worker)
+- **Why?** This enables multiprocessing, which prevents one heavy task (like generating a large PDF) from blocking the entire server for other users.
+
+## 2. Memory Limits (RAM-based)
+- **Formula:** (Number of Workers * 256MB to 512MB)
+- **Soft Limit:** `limit_memory_soft = 2147483648` (2GB)
+- **Hard Limit:** `limit_memory_hard = 2684354560` (2.5GB)
+- **Why?** Each worker can take around 250MB-500MB during heavy tasks like PDF generation. On a 4GB RAM server, setting the soft limit to 2GB and the hard limit to 2.5GB leaves enough room for the OS and PostgreSQL (which needs ~1GB to 1.5GB).
+
+## 3. Timeout Adjustments (For Large PDFs)
+Large PDF generation tasks often exceed the default 60-second timeout, causing the worker to be killed and the system to "hang" from the user's perspective.
+- **CPU Time:** `limit_time_cpu = 600` (10 minutes)
+- **Real Time:** `limit_time_real = 1200` (20 minutes)
+
+## 4. Optimized Configuration (`odoo.conf`)
+Add or update these parameters in your Odoo configuration file:
+
+```ini
+[options]
+workers = 5
+max_cron_threads = 1
+limit_memory_soft = 2147483648
+limit_memory_hard = 2684354560
+limit_time_cpu = 600
+limit_time_real = 1200
+limit_request = 8192
+proxy_mode = True
+```
+
+## 5. Performance Tips
+- **WeasyPrint:** As per local engineering standards, ensure you are using **WeasyPrint** for PDF generation. It produces higher quality invoices than wkhtmltopdf and handles complex layouts better, though it is more memory intensive.
+- **Nginx Reverse Proxy:** Ensure you have Nginx sitting in front of Odoo with `proxy_mode = True`. This handles static files and SSL more efficiently, offloading work from the Odoo workers.
+- **PostgreSQL Tuning:** Ensure `shared_buffers` in `postgresql.conf` is set to around `512MB` or `1GB` (25% of your 4GB RAM) for optimal database performance.
+
+---
+**Note:** If the hangs persist, consider increasing the server RAM to 8GB, as PDF generation (especially with WeasyPrint) can be very resource-heavy for large datasets.

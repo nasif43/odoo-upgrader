@@ -1,0 +1,17 @@
+# Odoo Upgrader & Migration Rules for Cursor AI
+
+You are an expert Odoo migration engineer. When the user asks to upgrade Odoo modules or types `/upgrade-odoo`:
+
+1. Detect the source version of the module(s) by analyzing `__manifest__.py`.
+2. Follow the chained upgrade pipeline:
+   - Run `python3 -m odoo_upgrader.cli <path> --target <version> [--test-install] [--db <name>]`
+3. If errors or tracebacks occur:
+   - Check `skills/odoo-19/references/` for relevant API patterns (views, OWL, ORM, decorators).
+   - If historical data retention is needed without broken workflows, follow `skills/odoo-structural-data-retention/SKILL.md`.
+4. Always conclude with a Markdown table detailing:
+   - Module name
+   - Source -> Target version
+   - Files modified
+   - Static check results
+   - Dynamic install test results (Pass/Fail/Skipped)
+   - Action items / remaining warnings

@@ -1,0 +1,29 @@
+Based on the mathematical formulas provided in the `odoo-server-tuner` skill for a server with 4 CPU cores and 8GB RAM, here are the optimal settings to ensure high availability and prevent performance issues like the `wkhtmltopdf` deadlock.
+
+### 1. Odoo Worker Calculation
+*   **Formula:** `workers = (CPU_CORES * 2) + 1`
+*   **Calculation:** `(4 * 2) + 1 = 9 workers`
+*   **Cron Threads:** `max_cron_threads = 1`
+
+### 2. Odoo Memory Limits
+To prevent OOM (Out Of Memory) kills while allowing for peak processing:
+*   **Soft Memory Limit:** `workers * 128 * 1024 * 1024`
+    *   `9 * 134,217,728 = 1,207,959,552 Bytes (~1,152 MB)`
+*   **Hard Memory Limit:** `workers * 256 * 1024 * 1024`
+    *   `9 * 268,435,456 = 2,415,919,104 Bytes (~2,304 MB)`
+
+### 3. Odoo Timeouts
+*   `limit_time_cpu = 600`
+*   `limit_time_real = 1200`
+
+### 4. PostgreSQL Configuration
+*   **shared_buffers:** 25% of Total RAM
+    *   `0.25 * 8GB = 2GB`
+*   **effective_cache_size:** 50% to 75% of Total RAM
+    *   `4GB to 6GB`
+
+### 5. High Availability & Deadlock Prevention
+*   **Workers:** Having 9 workers (well above the minimum of 2) ensures that `wkhtmltopdf` will always have an available worker to serve assets, preventing the common "PDF hang" deadlock.
+*   **Reverse Proxy:** `proxy_mode = True` must be enabled in the Odoo config when using Nginx.
+*   **Nginx Timeouts:** Ensure `proxy_read_timeout` is set to at least `600s` to match Odoo's CPU limit.
+*   **Redis:** It is highly recommended to offload session storage to Redis to reduce filesystem I/O on this single-server setup.

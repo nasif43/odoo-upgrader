@@ -1,0 +1,31 @@
+Based on the Odoo Server Tuner skill formulas for a server with 4 CPU cores and 8GB RAM running both Odoo and PostgreSQL, the optimal mathematical settings for high availability are:
+
+### 1. Odoo Configuration (`odoo.conf`)
+
+*   **Workers:** 9
+    *   *Formula:* `(4 cores * 2) + 1`
+*   **Cron Threads:** 1
+    *   *Setting:* `max_cron_threads = 1`
+*   **Memory Soft Limit:** 1,207,959,552 bytes (~1.125 GB)
+    *   *Formula:* `9 workers * 128MB`
+    *   *Setting:* `limit_memory_soft = 1207959552`
+*   **Memory Hard Limit:** 2,415,919,104 bytes (~2.25 GB)
+    *   *Formula:* `9 workers * 256MB`
+    *   *Setting:* `limit_memory_hard = 2415919104`
+*   **Timeouts:**
+    *   `limit_time_cpu = 600`
+    *   `limit_time_real = 1200`
+
+### 2. PostgreSQL Configuration (`postgresql.conf`)
+
+To ensure PostgreSQL doesn't starve Odoo for RAM while maintaining high performance:
+*   **shared_buffers:** 2GB
+    *   *Formula:* 25% of total RAM (8GB)
+*   **effective_cache_size:** 4GB to 6GB
+    *   *Formula:* 50-75% of total RAM (8GB)
+
+### 3. Optimization Stack Recommendations
+
+*   **Nginx:** Use as a reverse proxy with `proxy_mode = True` in Odoo. Set `proxy_read_timeout 600s` and enable Gzip to improve responsiveness.
+*   **Redis:** Install `redis-server` and offload Odoo sessions to Redis to reduce disk I/O.
+*   **High Availability Note:** To prevent the common `wkhtmltopdf` deadlock, ensure that `workers` is at least 2 (satisfied here with 9) and that the server can access its own `report.url`.

@@ -1,0 +1,37 @@
+Based on the Odoo Server Tuner (Monolithic Edition) guidelines for your server specs (2 cores, 4GB RAM), here is the optimized configuration to prevent hangs during large PDF generation:
+
+### 1. Calculation Summary
+*   **Total RAM:** 4096 MB
+*   **System & Database Reserve:** 2048 MB (512MB OS + 1024MB Postgres Buffers + 512MB Postgres Overhead)
+*   **Available Odoo RAM:** 2048 MB
+*   **Calculated Workers:** 2 (RAM-limited)
+
+### 2. Recommended odoo.conf Settings
+Update your `odoo.conf` file with the following parameters:
+
+```ini
+[options]
+workers = 2
+limit_memory_soft = 858993459
+limit_memory_hard = 1073741824
+limit_time_cpu = 600
+limit_time_real = 1200
+```
+
+*Note: 2 workers is the minimum required to prevent deadlocks during PDF generation, as one worker processes the PDF while the other can handle asset requests (CSS/images) from wkhtmltopdf.*
+
+### 3. Database Tuning (PostgreSQL)
+In `postgresql.conf`, adjust these settings to ensure efficient memory usage:
+*   `shared_buffers = 1024MB` (25% of total RAM)
+*   `effective_cache_size = 2048MB` (50% of total RAM)
+
+### 4. Proxy Configuration (Nginx)
+Ensure Nginx is used as a reverse proxy and has sufficient timeouts for large PDF generation:
+```nginx
+proxy_read_timeout 1200s;
+proxy_connect_timeout 1200s;
+proxy_send_timeout 1200s;
+```
+
+### 5. Why it was hanging
+On a 4GB server, Odoo's default settings often allow too many workers (e.g., 5 based on CPU). When generating a large invoice PDF, these workers can quickly consume all available RAM, causing the system to swap or kill the Odoo/Postgres process. Restricting to 2 workers ensures each has ~1GB of RAM headroom, which is necessary for memory-intensive wkhtmltopdf operations.

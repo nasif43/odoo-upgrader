@@ -1,0 +1,17 @@
+{
+  "skill_name": "odoo-server-tuner",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My Odoo server (2 cores, 4GB RAM) is slow and sometimes hangs when I generate a large invoice PDF. How should I tune the worker and memory settings?",
+      "expected_output": "The agent should suggest workers = 5 and appropriate memory limits (soft/hard) based on 4GB RAM.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I have a single server running Odoo and Postgres with 8GB RAM and 4 cores. What are the best mathematical settings for Odoo workers and memory to ensure high availability?",
+      "expected_output": "The agent should suggest workers = 9 and memory limits based on 8GB RAM.",
+      "files": []
+    }
+  ]
+}

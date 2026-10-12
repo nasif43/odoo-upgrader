@@ -1,0 +1,18 @@
+---
+description: Autonomous Odoo Module Upgrade Rules & Workflow
+globs: **/odoo/**, **/addons/**, **/custom_addons/**, **/__manifest__.py
+alwaysApply: false
+---
+
+# Odoo Upgrade Workflow Rule
+
+When upgrading Odoo modules between versions (e.g., 18 -> 19 or 19 -> 20):
+
+1. **Detection:** Inspect `__manifest__.py` to identify source version and dependencies.
+2. **Execution:** Run the upgrade pipeline:
+   ```bash
+   python3 -m odoo_upgrader.cli <path_to_module> --target 19
+   ```
+3. **Dynamic Test:** If local Odoo is available, test with `--test-install --db <dbname>`.
+4. **Reference Library:** When encountering broken XML views or Python decorators, read the guides in `skills/odoo-19/references/`.
+5. **Reporting:** Output a summary table showing transformed files, test install status, and remaining issues.

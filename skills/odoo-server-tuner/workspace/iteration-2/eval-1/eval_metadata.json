@@ -1,0 +1,11 @@
+{
+  "eval_id": 1,
+  "eval_name": "odoo-2-core-4gb-tune",
+  "prompt": "My Odoo server (2 cores, 4GB RAM) is slow and sometimes hangs when I generate a large invoice PDF. How should I tune the worker and memory settings?",
+  "assertions": [
+    {"text": "Recommends workers = 5", "passed": false, "evidence": ""},
+    {"text": "Recommends soft memory limit around 640MB", "passed": false, "evidence": ""},
+    {"text": "Recommends hard memory limit around 1.25GB", "passed": false, "evidence": ""},
+    {"text": "Addresses wkhtmltopdf hanging issue", "passed": false, "evidence": ""}
+  ]
+}

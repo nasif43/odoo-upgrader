@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sample_tree" model="ir.ui.view">
+        <field name="name">sample.model.tree</field>
+        <field name="model">sample.model</field>
+        <field name="arch" type="xml">
+            <list string="Samples">
+                <field name="name"/>
+                <field name="state" attrs="{'invisible': [('state', '=', 'draft')]}"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_sample_tree" model="ir.actions.act_window">
+        <field name="name">Samples</field>
+        <field name="res_model">sample.model</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

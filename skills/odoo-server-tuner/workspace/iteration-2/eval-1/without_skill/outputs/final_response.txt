@@ -1,0 +1,39 @@
+### Odoo Server Tuning for 2 Cores / 4GB RAM
+
+Your server is likely hanging because the memory limits are either not set (causing the OS to swap when a large PDF is generated) or are set too high for the available 4GB RAM. Below is the optimized configuration for your environment.
+
+#### 1. Worker Configuration
+For a 2-core CPU, the standard Odoo worker formula is `(CPU * 2) + 1`.
+- **`workers = 5`**: This allows for 4 HTTP workers and 1 Cron worker.
+- **`max_cron_threads = 1`**: Keeps memory usage low by limiting background tasks to one at a time.
+
+#### 2. Memory Limits (The "Anti-Hang" Settings)
+With 4GB RAM, you must leave room for PostgreSQL (~512MB-1GB) and the OS (~512MB). Setting these limits prevents Odoo from consuming all system memory and causing a hang.
+- **`limit_memory_soft = 671088640`** (640MB): The worker will restart after the request if it exceeds this, freeing up RAM.
+- **`limit_memory_hard = 805306368`** (768MB): The worker is killed immediately if it exceeds this, protecting the server.
+
+#### 3. Request Timeouts (For Large PDFs)
+Large invoice generation can take time. Ensure the worker isn't killed prematurely by the timeout settings.
+- **`limit_time_cpu = 600`** (10 minutes)
+- **`limit_time_real = 1200`** (20 minutes)
+
+#### 4. Recommended `odoo.conf` snippet
+```ini
+[options]
+workers = 5
+max_cron_threads = 1
+limit_memory_soft = 671088640
+limit_memory_hard = 805306368
+limit_time_cpu = 600
+limit_time_real = 1200
+proxy_mode = True
+```
+
+#### 5. WeasyPrint Specific Advice
+Since you use **WeasyPrint**, it is important to know that it is highly memory-intensive for large documents as it holds the entire document tree in memory.
+- **Optimize CSS**: Avoid complex selectors and `page-break-inside: avoid` on large blocks.
+- **Avoid Large Tables**: Use `<div>` with `display: block` instead of massive `<table>` structures if possible.
+- **Background Jobs**: Consider using the OCA `queue_job` module to move large PDF generation out of the user's synchronous request cycle.
+- **Split and Merge**: For extremely large reports, generate PDFs in batches of 50 pages and merge them using a library like `PyPDF2` to keep peak memory usage low.
+
+By applying these settings, your Odoo server will stay responsive even during heavy reporting tasks, as it will properly recycle workers and prevent memory exhaustion.
